@@ -1,10 +1,33 @@
 // components/Header.tsx
 "use client";
+import { useEffect, useState } from "react";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 export default function Header() {
     const pathname = usePathname();
+    const [rates, setRates] = useState<{ gold: number; silver: number } | null>(null);
+
+    useEffect(() => {
+        async function loadRates() {
+            try {
+                const res = await fetch("/api/metal-routes", { cache: "no-store" });
+                const data = await res.json();
+
+                setRates({
+                    gold: data.gold_22k_per_10g,
+                    silver: data.silver_per_kg,
+                });
+            } catch (e) {
+                console.log("Rate fetch failed:", e);
+            }
+        }
+
+        loadRates();
+        const interval = setInterval(loadRates, 300000);
+        return () => clearInterval(interval);
+
+    }, []);
 
     const navLinks = [
         { href: '/', label: 'Home' },
@@ -47,20 +70,23 @@ export default function Header() {
                 </div>
             </div>
             {/* Rates Bar - Centered, not boxed */}
-            <div className="bg-[#725B3B] w-full text-white px-6 py-3 md:px-20 border-b border-[#a88e60] flex justify-center items-center" style={{ fontFamily: "inherit" }}>
+            <div className="bg-[#725B3B] w-full text-white px-6 py-3 md:px-20 border-b border-[#a88e60] flex justify-center items-center">
                 <span className="flex items-center gap-2 font-medium text-[#e3c267] text-base mr-6">
-                    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" className="inline" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M2 12L7 7L11 11L18 4" stroke="#e3c267" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
                     Today's Rates:
                 </span>
+
                 <span className="mx-7 text-base font-medium flex items-center">
-                    <span className="text-white font-bold">Gold 22K:</span>
-                    <span className="text-[#e3c267] font-bold ml-2">₹6,280/g</span>
+                    <span className="text-white font-bold">Gold 22K per 10g:</span>
+                    <span className="text-[#e3c267] font-bold ml-2">
+                        {rates ? `₹${rates.gold}` : "Loading..."}
+                    </span>
                 </span>
+
                 <span className="text-base font-medium flex items-center">
-                    <span className="text-white font-bold">Silver 92.5%:</span>
-                    <span className="text-[#e3c267] font-bold ml-2">₹78/g</span>
+                    <span className="text-white font-bold">Silver / kg:</span>
+                    <span className="text-[#e3c267] font-bold ml-2">
+                        {rates ? `₹${rates.silver}` : "Loading..."}
+                    </span>
                 </span>
             </div>
         </header>
